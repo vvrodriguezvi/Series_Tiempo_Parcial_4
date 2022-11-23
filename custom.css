@@ -1,0 +1,38 @@
+
+
+#sidebar {
+  background: #F0FFFF;
+}
+
+#postamble {
+  background:#3C8483;
+  border-top:solid 8px #F0FFFF;
+}
+
+.title {
+  text-align: center;
+  color: #3C8483;
+}
+
+.subtitle {
+  color: #3C8483;
+}
+
+
+h1, h2, h3, h4, h5, h6, legend, href {
+  font-family: Times , sans-serif;
+  color: #F0FFFF;
+}
+
+#content h2 {
+    background-color: #3C8483;
+}
+
+#content h3 {
+    background-color: #3C8483;
+}
+
+
+#content h4 {
+    background-color: #3C8483;
+}
