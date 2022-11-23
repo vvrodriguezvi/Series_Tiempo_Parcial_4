@@ -1,0 +1,8 @@
+"0","serie_original <- ts(exp_cafe$valor, start=c(1992,1), frequency = 12)"
+"0","# Información de la serie"
+"0","ts_info(serie_original)"
+"1"," The serie_original series is a ts object with 1 variable and 369 observations
+ Frequency: 12 
+ Start time: 1992 1 
+ End time: 2022 9 
+"

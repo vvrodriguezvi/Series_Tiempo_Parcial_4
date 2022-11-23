@@ -1,0 +1,616 @@
+---
+output: html_document
+---
+
+<h2><center><b style = 'color : brown; font-size: 30px;'>
+PARCIAL 4 - SERIES DE TIEMPO.</b>
+</center></h2>
+
+<center>
+
+**INTEGRANTES** 
+
+|Nombre|Cédula|
+|:------|:------|
+|_Valentina Vanessa Rodríguez Villamizar_|1010085748|
+|_Carmen Daniela Zabaleta Cardeño_|1007706542|
+|_Genaro Alfonso Aristizabal Echeverri_|1007706542|
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+require(TSA)
+require(readxl)
+require(magrittr)
+require(astsa)
+library(janitor)
+library(ggplot2)
+require(forecast)
+require(tseries)
+require(lmtest)
+library(stats)
+library(TSstudio)
+require(tsoutliers)
+```
+
+
+</center>
+
+# 1. Lectura de la base de datos
+
+```{r, message=FALSE}
+# Base orginal, cargada desde el sitio del DANE
+base_compl <- read_excel("anexo-exportaciones-cafe-carbon-petroleo-ferroniquel-no-tradicionales-sep22.xlsx",skip=12) %>% clean_names()
+
+# Se selecciona solo las variables correspondientes a fecha y valor en miles de dolares de las exportaciones de café en Colombia
+base <- base_compl[1:442, c(1,3)] %>% 
+  rename("valor" = "miles_de_dolares_fob_3") %>%
+  na.omit(base) #eliminar fila de NA presente en la base original
+
+# crea un vector que contiene las filas de los totales por año, para luego eliminar esas observaciones de la base de datos.
+x <- seq(13, 399, by=13)
+base <- base[-(x), ]
+exp_cafe <-  data.frame(fecha=seq(as.Date("1992/1/1"),
+                                  as.Date("2022/9/1"), "months"),
+                        valor=base[1:369, 2])
+
+# El valor correspondiente a las exportaciones en miles dolares, se dividio en cien mil dolares
+exp_cafe$valor <- exp_cafe$valor/100000
+
+```
+
+# 2. Transformación de los datos en formato ts
+
+```{r}
+serie_original <- ts(exp_cafe$valor, start=c(1992,1),
+               frequency = 12)
+```
+
+# 3. Modelos planteados
+
+Ya que la serie no presenta estabilización en la varianza, se plantean modelos tanto para la serie sin transformar, como para la serie transformada.
+
+## 3.1 Usando la serie original
+
+- **Gráfico de la serie**
+
+```{r}
+serie_original %>% plot(main="Serie Original",
+                        las=1)
+```
+
+- Del gráfico de la serie original se observa que, hay un cambio de nivel con pendiente no nula, luego una tendencia positiva; además, se observa que cerca del 2016 un valor atípico, así como se puede evidenciar que en lo 90' hubo disminución considerable en las exportaciones de café sin tostar en el país. Se observa además un componente estacional, de s=12, periodos por años.
+
+### 3.1.1 Modelo 1: **auto.arima** con la serie original.
+
+```{r}
+modelo1 <- auto.arima(serie_original, stepwise = FALSE,
+                      approximation = FALSE)
+modelo1 %>% coeftest()
+
+```
+
+- Con la función auto.arima se obtuvo el modelo **SARIMA(1,1,1)X(2,0,0)[12]**, en el cual cada uno de los parámetros del modelo dió significativo.
+
+**Chequeo de los supuestos del error del modelo**
+
+```{r}
+modelo1 %>% checkresiduals()
+```
+
+- Dado que el test de **Ljungbox** arrojó un valor de 0.017, se rechaza el supuesto de incorrelación de los errores del modelo
+
+```{r}
+modelo1$residuals %>% shapiro.test()
+modelo1$residuals %>% qqnorm()
+modelo1$residuals %>% qqline()
+```
+
+- Tanto gráficamente como en el test de Shapiro Wilk se puede observar que no se cumple el suspuesto de normalidad de los errores del modelo
+
+## 3.2.2 Modelo 2: ajustando las observaciones outliers
+
+```{r, warning=FALSE}
+
+#delta <- seq(0.05, 0.95, 0.05)
+#aic_1 <- vector()
+#ljungbox1 <- vector()
+#i = 0
+
+#for(d in delta){
+  #i = i+1
+  #modelo_outl <- tso(serie_original, delta=d)
+  #aic_1[i] <- modelo_outl$fit$aic
+  #ljungbox1[i] <- checkresiduals(modelo_outl$fit,
+                                 #plot = FALSE)$p.value}
+
+#aic1 <- which.min(aic_1)
+#delta1 <- delta[aic1]
+
+modelo3 <- tso(serie_original, delta=0.85)
+modelo3
+```
+
+- Usando tso, se obtuvo un modelo **SARIMA(1,1,1)X(0,0,2)[12]** con 9 observaciones atípicas.
+
+```{r}
+
+modelo3_val <- arimax(serie_original, order=c(1, 1, 1),
+                      seasonal = list(order = c(0, 0, 2)),
+                      xtransf=data.frame(
+                        mayo1997a=1*(seq_along(serie_original) == 65),
+                        diciembre2010a=1*(seq_along(serie_original) == 228),
+                        abril2016a=1*(seq_along(serie_original) == 292),
+                        dic2016a=1*(seq_along(serie_original) == 300),
+                        julio2021a=1*c(rep(0,354),rep(1,15))),
+                        transfer=list(c(1, 0),c(1, 0),c(0, 0),
+                                    c(0, 0), c(0, 0)))
+
+modelo3_val %>% coeftest()
+```
+- Todos los parámetros significativos
+
+**Chequeo de los supuestos del error del modelo**
+
+```{r}
+modelo3_val %>% checkresiduals()
+```
+
+- Dado que el test de **Ljungbox** arrojó un valor de 0.03, se rechaza el supuesto de incorrelación de los errores del modelo
+
+```{r}
+modelo3_val$residuals %>% shapiro.test()
+modelo3_val$residuals %>% qqnorm()
+modelo3_val$residuals %>% qqline()
+```
+
+- Tanto gráficamente como en el test de Shapiro Wilk se puede observar que no se cumple el suspuesto de normalidad de los errores del modelo
+
+## 3.2 Usando la serie transformada: BoxCox
+
+```{r}
+cafe_lambda <- BoxCox.lambda(serie_original)
+cafe_lambda
+
+#lAMBDA DE LA TRANSFROMACIÓN BOXCOX
+
+serie_boxcox <- BoxCox(serie_original,
+                         lambda=cafe_lambda)
+```
+- **Gráfico de la serie transformada**
+
+```{r}
+serie_boxcox %>% plot(main="Serie Transformada - boxcox",
+                         las=1)
+```
+
+- Del gráfico de la serie transformada se puede evidenciar que se pudo estabilzar la varianza, por lo tanto la serie transformada parece ser aditiva, con factor estacional igual a 12 periodos y un cambio de tendencia, con pendiente no nula, y tendencia postiva luego de este cambio.
+
+## 3.2.1 Modelo 3: auto.arima sin observaciones atípicas, con la serie transformada
+
+```{r}
+modelo2 <- auto.arima(serie_boxcox, stepwise = FALSE,
+                      approximation = FALSE)
+modelo2
+modelo2 %>% coeftest()
+```
+- Con la función auto.arima se obtuvo el modelo **SARIMA(1,1,2)X(2,0,0)[12]**, en el cual cada uno de los parámetros del modelo dió significativo.
+
+**Chequeo de los supuestos del error del modelo**
+
+```{r}
+modelo2 %>% checkresiduals()
+```
+
+- Dado que el test de **Ljungbox** arrojó un valor de 0.17, por lo tanto no se rechaza el supuesto de incorrelación de los errores del modelo
+
+```{r}
+modelo2$residuals %>% shapiro.test()
+modelo2$residuals %>% qqnorm()
+modelo2$residuals %>% qqline()
+```
+
+- Tanto gráficamente como en el test de Shapiro Wilk se puede observar que se cumple el suspuesto de normalidad de los errores del modelo, ya que el valor p de la prueba es 0.36, mayor a $\alpha=0.05$.
+
+## 3.2.2 Modelo 4: serie transformada, ajustando modelo con las observaciones atípicas
+
+```{r}
+delta <- seq(0.05, 0.95, 0.05)
+aic_1 <- vector()
+ljungbox1 <- vector()
+i = 0
+
+#for(d in delta){
+  #i = i+1
+  #modelo_outl <- tso(serie_boxcox, delta=d)
+  #aic_1[i] <- modelo_outl$fit$aic
+  #ljungbox1[i] <- checkresiduals(modelo_outl$fit,
+                                 #plot = FALSE)$p.value}
+
+#aic2 <- which.min(aic_1)
+#delta2 <- delta[19]
+#delta2
+
+modelo4 <- tso(serie_boxcox, delta=0.95)
+
+modelo4_val <- arimax(serie_boxcox, order=c(0, 1, 1),
+                      seasonal = list(order = c(2, 0, 0)),
+                      xtransf=data.frame(
+                        
+                        junio1994a=1*(seq_along(serie_boxcox) == 30),
+                        sept2004a=1*(seq_along(serie_boxcox) == 153),
+                        dic2016a=1*(seq_along(serie_boxcox) == 300)),
+                      
+                        transfer=list(c(0, 0),c(0, 0),c(0, 0)))
+                              
+modelo4_val %>% coeftest()
+
+
+```
+
+
+- Solo el parámetro $\delta$ asociado a la observación atípica de junio del 1994 no dió significativa, por lo tanto, se elimina del modelo y se ajusta un modelo que no la contenga.
+
+```{r}
+
+modelo5_val <- arimax(serie_boxcox, order=c(0, 1, 1),
+                      seasonal = list(order = c(2, 0, 0)),
+                      xtransf=data.frame(
+                      sept2004a=1*(seq_along(serie_boxcox) == 153),
+                      dic2016a=1*(seq_along(serie_boxcox) == 300)),
+                      transfer=list(c(0, 0),c(0, 0)))
+                              
+modelo5_val %>% coeftest()
+
+```
+
+- Cada uno de los parámetros son significativos
+
+**Chequeo de los supuestos del error del modelo**
+
+```{r}
+modelo5_val %>% checkresiduals()
+```
+
+- Dado que el test de **Ljungbox** arrojó un valor de 0.008, se rechaza el supuesto de incorrelación de los errores del modelo
+
+```{r}
+modelo5_val$residuals %>% shapiro.test()
+modelo5_val$residuals %>% qqnorm()
+modelo5_val$residuals %>% qqline()
+```
+
+- Tanto gráficamente como en el test de Shapiro Wilk se puede observar que se cumple el suspuesto de normalidad de los errores del modelo.
+
+# 4. predicciones
+
+## 4.1 Modelo 1:
+
+```{r}
+
+train_md1 <- window(serie_original,start = c(1992,1),end =c(2022,8))
+test_md1 <- window(serie_original,start = c(2021,9),end =c(2022,9))
+modelo_train1 <- auto.arima(train_md1, stepwise = FALSE, approximation = FALSE)
+modelo_train1 %>% coeftest()
+
+#delta <- seq(0.1, 0.90, 0.1)
+#aic_1 <- vector()
+#ljungbox1 <- vector()
+#i = 0
+#for(d in delta){
+#i = i+1
+#modelo_outl <- tso(train_banco, delta=d)
+#aic_1[i] <- modelo_outl$fit$aic
+#ljungbox1[i] <- checkresiduals(modelo_outl$fit,
+#plot = FALSE)$p.value
+#}
+
+```
+
+```{r}
+#which.min(aic_1)
+# 0.8
+modelo_train2 <- tso(train_md1, delta=0.85)
+modelo_train2
+
+```
+
+```{r}
+modelo_train2$fit %>% checkresiduals()
+```
+
+```{r}
+modelo_train2$fit$residuals %>% shapiro.test()
+
+```
+```{r}
+modelo_train2$fit$residuals %>%qqnorm()
+modelo_train2$fit$residuals %>%qqline()
+```
+
+```{r}
+npred <- 22
+# Para el modelo 1:
+fore1 <- forecast(modelo_train1, h=npred)
+
+# Para el modelo 2:
+newxreg <- outliers.effects(modelo_train2$outliers,
+length(train_md1) + npred)
+newxreg <- ts(newxreg[-seq_along(train_md1),],
+start = c(2021,9))
+fore2 <- forecast(modelo_train2$fit, h=22,
+xreg = newxreg)
+accuracy(fore1, test_md1)
+accuracy(fore2, test_md1)
+
+
+
+```
+```{r}
+
+df_train <- data.frame(fecha= exp_cafe$fecha[1:length(train_md1)], real=
+exp_cafe$valor[1:length(train_md1)], pred1 = modelo_train1$fitted, pred2 = modelo_train2$fit$fitted)
+
+df_train %>% ggplot(aes(x=fecha, y=real), col="black")+geom_line()+
+geom_line(aes(x=fecha, y=pred1),col="blue", lty=2)+
+geom_line(aes(x=fecha, y=pred2),col="red", lty=3)
+
+
+```
+
+```{r}
+df_test<- data.frame(fecha= exp_cafe$fecha[348:369], real= exp_cafe$valor[348:369], pred1 = fore1$mean, pred2 = fore2$mean, li1=fore1$lower[,2], ls1=fore1$upper[,2], li2=fore2$lower[,2], ls2=fore2$upper[,2])
+
+df_test %>% ggplot(aes(x=fecha, y=real), col="black")+
+geom_line()+
+geom_line(aes(x=fecha, y=pred1),col="blue")+
+geom_line(aes(x=fecha, y=li1),col="blue", lty=2)+
+geom_line(aes(x=fecha, y=ls1),col="blue", lty=2)+
+geom_line(aes(x=fecha, y=pred2),col="red", lty=3)+
+geom_line(aes(x=fecha, y=li2),col="red", lty=3)+
+geom_line(aes(x=fecha, y=ls2),col="red", lty=3)
+
+```
+
+```{r}
+# predicciones
+# modelo 1: modelo sin intervención: serie original
+
+exp_cafe %>% dim()
+exp_cafe %>% ggplot(aes(x=fecha, y=valor))+geom_line(col="blue")
+exp_cafe %>% head(4)
+exp_cafe %>% tail(4)
+
+serie_original <- ts(exp_cafe$valor, start=c(1992,1),
+                frequency = 12)
+modelo1 <- auto.arima(serie_original, stepwise = FALSE,
+                      approximation = FALSE)
+modelo1 %>% coeftest()
+predict(modelo1, n.ahead = 12)
+
+train1 <- window(serie_original, start=time(serie_original)[1],
+                end = time(serie_original)[length(serie_original) - 12])
+ts_info(train1)
+
+test1 <- window(serie_original, start = time(serie_original)[length(serie_original)
+                                          - 12 + 1],
+               end = time(serie_original)[length(serie_original)])
+ts_info(test1)
+
+# modelo 1: train
+
+modelo1.train <- auto.arima(train1, stepwise = FALSE,
+                            approximation = FALSE)
+checkresiduals(modelo1.train)
+
+# Asumiendo que los residuales del modelo provienen de una distribución normal, entonces evaluamos la precisión del modelo
+# mediante la función accuracy del paquete forecast
+
+fore1 <- forecast(modelo1.train, h=12)
+accuracy(fore1, test1)
+
+test_forecast(actual = serie_original, forecast.obj = fore1,
+              test = test1)
+
+naive_model1 <- naive(train1, h = 12)
+test_forecast(actual = serie_original,
+              forecast.obj = naive_model1,
+              test = test1)
+
+#NAIVE PARA ESTACIONALIDAD
+
+accuracy(naive_model1, test1)
+snaive_model1 <- snaive(train1, h = 12)
+test_forecast(actual = serie_original,
+              forecast.obj = snaive_model1,
+              test = test1)
+
+accuracy(snaive_model1, test1)
+
+#Modelo 2: tso de la serie original
+
+delta <- seq(0.1, 0.90, 0.1)
+aic_1 <- vector()
+ljungbox1 <- vector()
+i = 0
+
+for(d in delta){
+  i = i+1
+  modelo_outl <- tso(train1, delta=d)
+  aic_1[i] <- modelo_outl$fit$aic
+  ljungbox1[i] <- checkresiduals(modelo_outl$fit,
+                                 plot = FALSE)$p.value
+}
+
+which.min(aic_1)
+delta[8]
+ljungbox1[8]
+
+modelo_train2 <- tso(train1, delta=0.8)
+modelo_train2
+
+modelo_train2$fit %>% checkresiduals()
+modelo_train2$fit$residuals %>% shapiro.test()
+modelo_train2$fit$residuals %>% jarque.bera.test()
+
+npred <- 12
+newxreg <- outliers.effects(modelo_train2$outliers,                             
+                            length(train1) + npred)
+newxreg <- ts(newxreg[-seq_along(train1),],
+              start =time(serie_original)[length(serie_original)
+                                          - 12 + 1])
+fore2 <- forecast(modelo_train2$fit, h=12,
+                  xreg = newxreg)
+
+accuracy(fore1, test1)
+accuracy(fore2, test1)
+
+df_train <- data.frame(fecha=
+                         exp_cafe$fecha[1:length(train1)],
+                       real=
+                         exp_cafe$valor[1:length(train1)],
+                       pred1 = modelo1.train$fitted,
+                       pred2 = modelo_train2$fit$fitted)
+
+df_train %>% ggplot(aes(x=fecha, y=real), col="black")+
+  geom_line()+
+  geom_line(aes(x=fecha, y=pred1),col="blue", lty=2)+
+  geom_line(aes(x=fecha, y=pred2),col="red", lty=3)
+
+df_test <- data.frame(fecha=
+                       exp_cafe$fecha[358:369],
+                     real=
+                       exp_cafe$valor[358:369],
+                     pred1 = fore1$mean, pred2 = fore2$mean,
+                     li1=fore1$lower[,2], ls1=fore1$upper[,2],
+                     li2=fore2$lower[,2], ls2=fore2$upper[,2])
+
+df_test %>% ggplot(aes(x=fecha, y=real), col="black")+
+  geom_line()+
+  geom_line(aes(x=fecha, y=pred1),col="blue")+
+  geom_line(aes(x=fecha, y=li1),col="blue", lty=2)+
+  geom_line(aes(x=fecha, y=ls1),col="blue", lty=2)+
+  geom_line(aes(x=fecha, y=pred2),col="red", lty=3)+
+  geom_line(aes(x=fecha, y=li2),col="red", lty=3)+
+  geom_line(aes(x=fecha, y=ls2),col="red", lty=3)
+
+##------------------------------------------------------------------------
+
+modelo2 <- auto.arima(serie_boxcox, stepwise = FALSE,
+                      approximation = FALSE)
+modelo2 %>% coeftest()
+
+predict(modelo2, n.ahead = 12)
+
+train2 <- window(serie_boxcox, start=time(serie_boxcox)[1],
+                 end = time(serie_boxcox)[length(serie_boxcox) - 12])
+ts_info(train2)
+
+test2 <- window(serie_boxcox, start = time(serie_boxcox)[length(serie_boxcox)
+                                                             - 12 + 1],
+                end = time(serie_boxcox)[length(serie_boxcox)])
+ts_info(test2)
+
+# modelo 3: train
+
+modelo2.train <- auto.arima(train2, stepwise = FALSE,
+                            approximation = FALSE)
+checkresiduals(modelo2.train)
+
+# Asumiendo que los residuales del modelo provienen de una distribución normal, entonces evaluamos la precisión del modelo
+# mediante la función accuracy del paquete forecast
+
+fore3 <- forecast(modelo2.train, h=12)
+accuracy(fore3, test2)
+
+test_forecast(actual = serie_boxcox, forecast.obj = fore3,
+              test = test2)
+
+naive_model1 <- naive(train2, h = 12)
+test_forecast(actual = serie_boxcox,
+              forecast.obj = naive_model1,
+              test = test2)
+
+fore3_1 <- forecast(modelo2.train, h=12)
+
+
+#NAIVE PARA ESTACIONALIDAD
+
+accuracy(naive_model1, test2)
+snaive_model1 <- snaive(train2, h = 12)
+test_forecast(actual = serie_boxcox,
+              forecast.obj = snaive_model1,
+              test = test2)
+
+accuracy(snaive_model1, test2)
+
+#Modelo 2: tso de la serie original
+
+delta <- seq(0.1, 0.90, 0.1)
+aic_1 <- vector()
+ljungbox1 <- vector()
+i = 0
+
+for(d in delta){
+  i = i+1
+  modelo_outl <- tso(train2, delta=d)
+  aic_1[i] <- modelo_outl$fit$aic
+  ljungbox1[i] <- checkresiduals(modelo_outl$fit,
+                                 plot = FALSE)$p.value
+}
+
+which.min(aic_1)
+delta[8]
+ljungbox1[8]
+
+modelo_train2 <- tso(train2, delta=0.8)
+modelo_train2
+
+modelo_train2$fit %>% checkresiduals()
+modelo_train2$fit$residuals %>% shapiro.test()
+modelo_train2$fit$residuals %>% jarque.bera.test()
+
+npred <- 12
+newxreg <- outliers.effects(modelo_train2$outliers,                             
+                            length(train2) + npred)
+newxreg <- ts(newxreg[-seq_along(train2),],
+              start =time(serie_boxcox)[length(serie_boxcox)
+                                          - 12 + 1])
+fore4 <- forecast(modelo_train2$fit, h=12,
+                  xreg = newx    reg)
+
+accuracy(fore3, test2)
+accuracy(fore4, test2)
+
+df_train <- data.frame(fecha=
+                         exp_cafe$fecha[1:length(train2)],
+                       real=
+                         exp_cafe$valor[1:length(train2)],
+                       pred1 = InvBoxCox(modelo2.train$fitted, lambda = cafe_lambda),
+                       pred2 = InvBoxCox(modelo_train2$fit$fitted, lambda = cafe_lambda))
+
+df_train %>% ggplot(aes(x=fecha, y=real), col="black")+
+  geom_line()+
+  geom_line(aes(x=fecha, y=pred1),col="blue", lty=2)+
+  geom_line(aes(x=fecha, y=pred2),col="red", lty=3)
+
+df_test <- data.frame(fecha=
+                        exp_cafe$fecha[358:369],
+                      real=
+                        exp_cafe$valor[358:369],
+                      pred1 = fore3$mean, pred2 = fore4$mean,
+                      li1=fore3$lower[,2], ls1=fore3$upper[,2],
+                      li2=fore4$lower[,2], ls2=fore4$upper[,2])
+
+df_test %>% ggplot(aes(x=fecha, y=real), col="black")+
+  geom_line()+
+  geom_line(aes(x=fecha, y=pred1),col="blue")+
+  geom_line(aes(x=fecha, y=li1),col="blue", lty=2)+
+  geom_line(aes(x=fecha, y=ls1),col="blue", lty=2)+
+  geom_line(aes(x=fecha, y=pred2),col="red", lty=3)+
+  geom_line(aes(x=fecha, y=li2),col="red", lty=3)+
+  geom_line(aes(x=fecha, y=ls2),col="red", lty=3)
+
+```
+

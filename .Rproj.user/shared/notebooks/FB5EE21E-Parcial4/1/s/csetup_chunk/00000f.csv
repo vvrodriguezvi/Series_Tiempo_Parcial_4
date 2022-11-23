@@ -1,0 +1,149 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","library(kableExtra)"
+"2","Warning: package ‘kableExtra’ was built under R version 4.1.3"
+"0","library(tidyverse)"
+"2","Warning: package ‘tidyverse’ was built under R version 4.1.3"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"2","[37m-- [1mAttaching packages[22m ------------------------------------ tidyverse 1.3.1 --[39m
+"
+"2","[37m[32mâˆš[37m [34mggplot2[37m 3.3.5     [32mâˆš[37m [34mpurrr  [37m 0.3.4
+[32mâˆš[37m [34mtibble [37m 3.1.6     [32mâˆš[37m [34mdplyr  [37m 1.0.8
+[32mâˆš[37m [34mtidyr  [37m 1.2.0     [32mâˆš[37m [34mstringr[37m 1.4.0
+[32mâˆš[37m [34mreadr  [37m 2.1.2     [32mâˆš[37m [34mforcats[37m 0.5.1[39m
+"
+"2","Warning: package ‘ggplot2’ was built under R version 4.1.3"
+"2","Warning: package ‘tibble’ was built under R version 4.1.3"
+"2","Warning: package ‘tidyr’ was built under R version 4.1.3"
+"2","Warning: package ‘readr’ was built under R version 4.1.3"
+"2","Warning: package ‘purrr’ was built under R version 4.1.3"
+"2","Warning: package ‘dplyr’ was built under R version 4.1.3"
+"2","Warning: package ‘stringr’ was built under R version 4.1.3"
+"2","Warning: package ‘forcats’ was built under R version 4.1.3"
+"2","[37m-- [1mConflicts[22m --------------------------------------- tidyverse_conflicts() --
+[31mx[37m [34mdplyr[37m::[32mfilter()[37m     masks [34mstats[37m::filter()
+[31mx[37m [34mdplyr[37m::[32mgroup_rows()[37m masks [34mkableExtra[37m::group_rows()
+[31mx[37m [34mdplyr[37m::[32mlag()[37m        masks [34mstats[37m::lag()[39m
+"
+"0","require(TSA)"
+"2","Loading required package: TSA
+"
+"2","Warning: package ‘TSA’ was built under R version 4.1.3"
+"2","
+Attaching package: ‘TSA’
+
+"
+"2","The following object is masked from ‘package:readr’:
+
+    spec
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    acf, arima
+
+"
+"2","The following object is masked from ‘package:utils’:
+
+    tar
+
+"
+"0","require(readxl)"
+"2","Loading required package: readxl
+"
+"2","Warning: package ‘readxl’ was built under R version 4.1.3"
+"0","require(magrittr)"
+"2","Loading required package: magrittr
+"
+"2","Warning: package ‘magrittr’ was built under R version 4.1.3"
+"2","
+Attaching package: ‘magrittr’
+
+"
+"2","The following object is masked from ‘package:purrr’:
+
+    set_names
+
+"
+"2","The following object is masked from ‘package:tidyr’:
+
+    extract
+
+"
+"0","require(astsa)"
+"2","Loading required package: astsa
+"
+"2","Warning: package ‘astsa’ was built under R version 4.1.3"
+"0","library(janitor)"
+"2","Warning: package ‘janitor’ was built under R version 4.1.3"
+"2","
+Attaching package: ‘janitor’
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    chisq.test, fisher.test
+
+"
+"0","library(ggplot2)"
+"0","require(forecast)"
+"2","Loading required package: forecast
+"
+"2","Warning: package ‘forecast’ was built under R version 4.1.3"
+"2","Registered S3 method overwritten by 'quantmod':
+  method            from
+  as.zoo.data.frame zoo 
+"
+"2","Registered S3 methods overwritten by 'forecast':
+  method       from
+  fitted.Arima TSA 
+  plot.Arima   TSA 
+"
+"2","
+Attaching package: ‘forecast’
+
+"
+"2","The following object is masked from ‘package:astsa’:
+
+    gas
+
+"
+"0","require(tseries)"
+"2","Loading required package: tseries
+"
+"2","Warning: package ‘tseries’ was built under R version 4.1.3"
+"2","
+    ‘tseries’ version: 0.10-51
+
+    ‘tseries’ is a package for time series analysis and
+    computational finance.
+
+    See ‘library(help=""tseries"")’ for details.
+
+"
+"0","require(lmtest)"
+"2","Loading required package: lmtest
+"
+"2","Warning: package ‘lmtest’ was built under R version 4.1.3"
+"2","Loading required package: zoo
+"
+"2","Warning: package ‘zoo’ was built under R version 4.1.3"
+"2","
+Attaching package: ‘zoo’
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    as.Date, as.Date.numeric
+
+"
+"0","library(stats)"
+"0","library(TSstudio)"
+"2","Warning: package ‘TSstudio’ was built under R version 4.1.3"
+"0","require(tsoutliers)"
+"2","Loading required package: tsoutliers
+"
+"2","Warning: package ‘tsoutliers’ was built under R version 4.1.3"

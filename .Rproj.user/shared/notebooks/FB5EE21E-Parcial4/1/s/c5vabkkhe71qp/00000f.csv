@@ -1,0 +1,1 @@
+"0","exp_cafe %>% ggplot(aes(x=fecha, y=valor))+geom_line(col=""#3C8483"")+labs(x = ""Fecha"", y = ""Exportaciones de café sin tostar (cien millones de dolares FOB)"")"

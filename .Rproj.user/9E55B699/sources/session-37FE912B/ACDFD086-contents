@@ -124,6 +124,8 @@ Por lo tanto se plantean 4 modelos para ajustar la serie:
 Antes de modelar la serie con cada uno de los modelos planteados, se divide la serie en dos, __Train__ y __Test__ con el fin de realizar backtesting, la base de entrenamiento, contiene información de las exportaciones hasta septiembre de 2021, el cual contiene un total de 257 observaciones y la base de test va desde octubre 2021 hasta septiembre de 2022, con un total de 12 observaciones.
 
 ```{r}
+
+#Train y test serie original, modelos 1 y 2
 train <- window(serie_original, start=time(serie_original)[1],
                 end = time(serie_original)[length(serie_original) - 12])
 ts_info(train)
@@ -134,7 +136,7 @@ test <- window(serie_original, start = time(serie_original)[length(serie_origina
 ts_info(test)
 
 
-#transformación de la serie:
+#trainy test para la transformación de la serie, para modelos 3 y 4
 
 cafe_lambda <- BoxCox.lambda(serie_original)
 

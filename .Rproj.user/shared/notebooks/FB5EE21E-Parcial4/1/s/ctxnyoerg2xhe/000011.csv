@@ -1,0 +1,2 @@
+"0",""
+"0","kable(exp_cafe %>% tail(4),align = ""c"")%>% kable_styling(latex_options = c(""condensed""), position = ""center"")"
